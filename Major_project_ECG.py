@@ -46,8 +46,8 @@ order = 6
 wn = cutoff / (Fs / 2)
 
 b_hpf, a_hpf = butter(order, wn, btype='highpass')
-final_ecg = filtfilt(b_hpf, a_hpf, raw_ecg)
-'''
+hpf_ecg = filtfilt(b_hpf, a_hpf, raw_ecg)
+
 # --------------------------------
 # NOTCH FILTER (Powerline / EMG Removal)
 # --------------------------------
@@ -58,7 +58,7 @@ w0 = notch_freq / (Fs / 2)
 b_notch, a_notch = iirnotch(w0, Q)
 
 final_ecg = filtfilt(b_notch, a_notch, hpf_ecg)
-'''
+
 
 # --------------------------------
 # FFT COMPUTATION
@@ -148,3 +148,4 @@ plt.grid(True)
 
 plt.tight_layout()
 plt.show()
+
