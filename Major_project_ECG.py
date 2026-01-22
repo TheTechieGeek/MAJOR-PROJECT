@@ -12,11 +12,11 @@ Description:
     (iv)    Applies a notch filter (40 Hz cutoff) to remove powerline interference from ECG signal.
     (v)     Plots the filtered and unfiltered ECG alongside their fft graph.
 """
-
 import scipy.io as sio
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import butter, filtfilt
+from scipy.signal import butter, filtfilt, iirnotch
+import pandas as pd
 
 # Load the ECG dataset
 file_path = r"C:\Users\aravi\Downloads\ECGData\ECGData.mat"
@@ -28,7 +28,7 @@ ecg_signals = ECGData['Data'][0, 0]          # (162, 65536)
 labels = ECGData['Labels'][0, 0].squeeze()
 
 # Parameters
-Fs = 360 # Standardised sampling frequency of 360 Hz is taken
+Fs = 360  # Sampling frequency
 example_index = 0
 
 # Time axis
@@ -43,15 +43,22 @@ raw_ecg = ecg_signals[example_index, :]
 # --------------------------------
 cutoff = 1  # Hz
 order = 6
-
-# Normalized cutoff frequency
 wn = cutoff / (Fs / 2)
 
-# Design Butterworth HPF
-b, a = butter(order, wn, btype='highpass')
+b_hpf, a_hpf = butter(order, wn, btype='highpass')
+final_ecg = filtfilt(b_hpf, a_hpf, raw_ecg)
+'''
+# --------------------------------
+# NOTCH FILTER (Powerline / EMG Removal)
+# --------------------------------
+notch_freq = 40  # Hz
+Q = 30           # Quality factor (controls notch width)
 
-# Zero-phase filtering
-filtered_ecg = filtfilt(b, a, raw_ecg)
+w0 = notch_freq / (Fs / 2)
+b_notch, a_notch = iirnotch(w0, Q)
+
+final_ecg = filtfilt(b_notch, a_notch, hpf_ecg)
+'''
 
 # --------------------------------
 # FFT COMPUTATION
@@ -59,53 +66,85 @@ filtered_ecg = filtfilt(b, a, raw_ecg)
 N = len(raw_ecg)
 freqs = np.fft.rfftfreq(N, 1/Fs)
 
-fft_raw = np.abs(np.fft.rfft(raw_ecg)) # frequency response of raw ECG signal
-fft_filtered = np.abs(np.fft.rfft(filtered_ecg)) # frequency response of filtered ECG signal.
+fft_raw = np.abs(np.fft.rfft(raw_ecg))
+fft_final = np.abs(np.fft.rfft(final_ecg))
+
+# --------------------------------
+# SELECT TIME WINDOW
+# --------------------------------
+start_time = 0    # seconds
+end_time   = 2    # seconds
+
+start_idx = int(start_time * Fs)
+end_idx   = int(end_time * Fs)
+
+t_segment = t[start_idx:end_idx]
+ecg_segment = final_ecg[start_idx:end_idx]
+
+# --------------------------------
+# SAVE SEGMENT TO CSV
+# --------------------------------
+output_csv_path = r"C:\Users\aravi\Downloads\study materials download\S8\PROJECT\report diagrams\filtered_ecg_0_to_5s.csv"
+
+df_segment = pd.DataFrame({
+    "Time (s)": t_segment,
+    "Filtered ECG (HPF + Notch)": ecg_segment
+})
+
+df_segment.to_csv(output_csv_path, index=False)
+
+print(f"ECG segment saved: {output_csv_path}")
 
 # --------------------------------
 # PLOTTING
 # --------------------------------
 plt.figure(figsize=(12, 10))
 
-# --- Time Domain of raw ECG signal ---
-plt.subplot(2, 2, 1)
-plt.plot(t, raw_ecg, linewidth=0.7)
+# Raw ECG
+plt.subplot(3, 2, 1)
+plt.plot(t, raw_ecg, color="red", linewidth=0.7)
 plt.title("Raw ECG Signal")
-plt.xlabel("Time")
-plt.xlim(0, 5)
-plt.ylabel("Amplitude")
-#plt.ylim(0, 2)
-plt.grid(True)
-
-# --- Time Domain of Filtered ECG signal ---
-plt.subplot(2, 2, 2)
-plt.plot(t, filtered_ecg, color='green', linewidth=0.7)
-plt.title("Filtered ECG (Baseline Wander Removed – HPF @ 0.5 Hz)")
-plt.xlim(0, 5)
 plt.ylabel("Amplitude")
 plt.grid(True)
-# --- Frequency Domain of raw ECG signal ---
-plt.subplot(2, 1, 1)
-plt.plot(freqs, fft_raw, label="Raw ECG", color = "blue")
-plt.title("FFT Comparison (Baseline Wander Removal)")
-plt.xlabel("Frequency (Hz)")
-plt.xlim(0, 3)   # Baseline wander region
-plt.ylabel("Magnitude")
-plt.ylim(0, 1000)
-plt.legend()
+
+# HPF + Notch ECG
+plt.subplot(3, 2, 2)
+plt.plot(t, final_ecg, color="green", linewidth=0.7)
+plt.title("Filtered ECG (HPF @ 1 Hz + Notch @ 40 Hz)")
+plt.ylabel("Amplitude")
 plt.grid(True)
 
-# --- Frequency Domain of filtered ECG signal ---
-plt.subplot(2, 1, 2)
-plt.plot(freqs, fft_filtered, label="Filtered ECG", color = "green")
-plt.title("FFT Comparison (Baseline Wander Removed)")
-plt.xlim(0, 3)   # Baseline wander region
-plt.xlabel("Frequency (Hz)")
-plt.ylabel("Magnitude")
+# FFT Raw
+plt.subplot(3, 2, 3)
+plt.plot(freqs, fft_raw, color="red")
+plt.title("FFT of Raw ECG")
+plt.xlim(0, 5)
 plt.ylim(0, 1000)
-plt.legend()
+plt.ylabel("Magnitude")
 plt.grid(True)
 
-# tight_layout to prevent overlapping of plots
+# FFT Final
+plt.subplot(3, 2, 4)
+plt.plot(freqs, fft_final, color="green")
+plt.title("FFT of Filtered ECG")
+plt.xlim(0, 5)
+plt.ylim(0, 1000)
+plt.ylabel("Magnitude")
+plt.grid(True)
+
+# Zoomed Raw
+plt.subplot(3, 2, 5)
+plt.plot(t, raw_ecg, color="red", linewidth=0.7)
+plt.xlim(0, 5)
+plt.title("Raw ECG (0–5 s)")
+plt.grid(True)
+
+# Zoomed Filtered
+plt.subplot(3, 2, 6)
+plt.plot(t, final_ecg, color="green", linewidth=0.7)
+plt.xlim(0, 5)
+plt.title("Filtered ECG (0–5 s)")
+plt.grid(True)
+
 plt.tight_layout()
 plt.show()
