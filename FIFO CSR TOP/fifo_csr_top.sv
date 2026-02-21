@@ -1,4 +1,3 @@
-`timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: 
@@ -18,8 +17,65 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
+/*
+AXI4-Lite CSR + Synchronous FIFO Subsystem
+------------------------------------------
+Author: T G Balasubramaniam
+Date: 21-02-26
 
+Description:
+    (i)     Top-level subsystem integrating an AXI4-Lite Control and
+            Status Register (CSR) block with a synchronous FIFO buffer
+    (ii)    Provides memory-mapped register access to control and monitor
+            FIFO operation through a standard AXI4-Lite interface
+    (iii)   CONTROL register enables/disables FIFO operation
+    (iv)    STATUS register dynamically reflects FIFO empty, full,
+            and level information
+    (v)     Designed for SoC integration in AMBA-based architectures
 
+Architecture:
+    AXI Master
+         │
+         ▼
+    AXI4-Lite Slave (CSR)
+         │
+         ├── CONTROL Register  → FIFO chip-select (cs)
+         └── STATUS Register   ← FIFO status signals
+                                    (empty, full, level)
+         ▼
+    Synchronous FIFO Buffer
+
+Functional Overview:
+    - AXI write transactions configure FIFO behavior via CONTROL register
+    - AXI read transactions retrieve FIFO status information
+    - FIFO operates synchronously with system clock (ACLK)
+    - Subsystem designed to be fully synthesizable
+    - External write/read enable signals provided for flexible integration
+
+Problem Statement:
+    Integrate a synchronous FIFO with an AXI4-Lite CSR block to create
+    a configurable and monitorable buffering subsystem suitable for
+    system-level SoC applications.
+
+Design Goals:
+    - Maintain strict AXI4-Lite protocol compliance
+    - Ensure clean separation between control path (CSR)
+      and data path (FIFO)
+    - Provide dynamic status monitoring without storing
+      redundant state in registers
+    - Preserve synthesizability of RTL design
+
+Notes:
+    - File-driven stimulus and CSV data feeding are handled only
+      in the testbench and not within this synthesizable module
+    - The subsystem is verified in phases:
+          Phase 1 → Structural connectivity validation
+          Phase 2 → Control gating verification
+          Phase 3 → Boundary condition testing
+          Phase 4 → Real data (ECG) validation
+*/
+
+`timescale 1ns / 1ps
 // --------------------------------------------------
 // Top Module : FIFO + AXI4-Lite CSR Integration
 // --------------------------------------------------
