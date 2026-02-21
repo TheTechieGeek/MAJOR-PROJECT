@@ -18,6 +18,141 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
+/*
+CSR Module Verification Testbench
+----------------------------------
+Module: tb_axi4_lite_slave
+Author: T G Balasubramaniam
+Date: 21-02-26
+
+Description:
+    (i)     Unit-level verification testbench for the AXI4-Lite
+            CSR (Control and Status Register) module
+    (ii)    Validates AXI protocol compliance, register access
+            behavior, and dynamic status reflection
+    (iii)   Implements reusable AXI read/write tasks with timeout
+            protection for deterministic debugging
+    (iv)    Uses structured PASS/FAIL reporting methodology
+    (v)     Intended for standalone validation of the CSR
+            before subsystem integration
+
+Verification Objective:
+
+    Validate correct operation of:
+
+        AXI Write → CONTROL Register Update
+        AXI Read  → CONTROL Register Readback
+        FIFO Status Inputs → STATUS Register Mapping
+        FIFO Level Input   → FIFO_LEVEL Register Mapping
+        Invalid Address → SLVERR Response
+
+    Ensure strict AXI4-Lite handshake compliance across:
+        • Write Address Channel
+        • Write Data Channel
+        • Write Response Channel
+        • Read Address Channel
+        • Read Data Channel
+
+------------------------------------------------------------
+Test Coverage Overview (12 Structured Tests)
+------------------------------------------------------------
+
+TEST 1:
+    CONTROL Full-Word Write
+    - Writes 32-bit value to CONTROL register
+    - Verifies correct storage and RESP_OKAY
+
+TEST 2:
+    CONTROL Readback
+    - Confirms read returns last written value
+
+TEST 3:
+    CONTROL Byte Write (Lower Byte)
+    - Validates correct WSTRB masking
+    - Ensures partial byte update works
+
+TEST 4:
+    CONTROL Byte Write (Upper Bytes)
+    - Verifies selective masked write
+    - Confirms previous byte remains intact
+
+TEST 5:
+    STATUS Read (Empty=1, Full=0)
+    - Checks correct bit mapping:
+          bit[0] = fifo_empty_i
+          bit[1] = fifo_full_i
+
+TEST 6:
+    STATUS Read (Full=1, Empty=0)
+    - Verifies dynamic status reflection
+
+TEST 7:
+    FIFO_LEVEL Read
+    - Confirms direct mapping of fifo_level_i
+
+TEST 8:
+    Invalid Read Address
+    - Verifies SLVERR response generation
+
+TEST 9:
+    CONTROL / STATUS Independence
+    - Ensures STATUS reads do not modify CONTROL
+    - Validates clean separation of control and status paths
+
+TEST 10:
+    Back-to-Back Writes
+    - Validates correct handling of consecutive writes
+    - Ensures no stale data or protocol violation
+
+TEST 11:
+    Invalid Write Address
+    - Confirms SLVERR returned on unsupported address
+
+TEST 12:
+    Multiple FIFO_LEVEL Reads
+    - Verifies dynamic update of FIFO level
+    - Confirms real-time reflection without storage
+
+------------------------------------------------------------
+Expected Behavior
+------------------------------------------------------------
+
+✓ CONTROL register updates correctly with masking
+✓ STATUS register dynamically reflects FIFO inputs
+✓ FIFO_LEVEL register directly maps input value
+✓ Invalid addresses return SLVERR (2'b10)
+✓ All valid accesses return RESP_OKAY (2'b00)
+✓ No AXI handshake timeout occurs
+✓ CONTROL and STATUS logic remain independent
+
+------------------------------------------------------------
+Verification Strategy
+------------------------------------------------------------
+
+1) Deterministic stimulus only
+2) Timeout-protected AXI tasks prevent deadlock
+3) Structured PASS/FAIL scoreboard
+4) Self-checking methodology (no manual waveform dependency)
+5) VCD waveform generation for debug (tb_axi4_lite_slave.vcd)
+
+------------------------------------------------------------
+Scope
+------------------------------------------------------------
+
+• Unit-level CSR verification only
+• No FIFO datapath integration
+• No stress or random testing
+• No performance measurement
+• No concurrent multi-master scenarios
+
+------------------------------------------------------------
+Notes:
+    - This testbench is fully self-checking
+    - No file I/O is used
+    - Designed for simulation-only environment
+    - Synthesizable logic resides only in DUT
+*/
+
 module tb_axi4_lite_slave;
 
     // ==================================================
