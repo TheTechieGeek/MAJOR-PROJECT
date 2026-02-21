@@ -81,7 +81,7 @@ Notes:
     - Subsequent phases will extend verification coverage
 */
 
-module tb_axi_csr_fifo_top_phase3;
+module tb_axi_csr_fifo_top_phase1;
 
     // --------------------------------------------------
     // Parameters
