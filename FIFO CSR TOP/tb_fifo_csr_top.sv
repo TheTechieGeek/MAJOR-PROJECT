@@ -19,9 +19,6 @@
 // 
 //////////////////////////////////////////////////////////////////////////////////
 /*
-PHASE 1 VERIFICATION OF THE TOP MODULE
-*/
-/*
 Phase-1 Subsystem Verification Testbench
 ----------------------------------------
 Module: tb_axi_csr_fifo_top
