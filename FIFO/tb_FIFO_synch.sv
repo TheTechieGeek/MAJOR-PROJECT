@@ -17,6 +17,140 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
+/*
+Synchronous FIFO Verification Testbench
+---------------------------------------
+Module: tb_fifo_sync
+Author: T G Balasubramaniam
+Date: 21-02-26
+
+Description:
+    (i)     Standalone verification testbench for the synchronous FIFO
+    (ii)    Validates correct write/read sequencing, occupancy tracking,
+            and status flag behavior
+    (iii)   Streams real ECG sample data from CSV file into FIFO
+    (iv)    Continuously drains FIFO to verify data integrity
+    (v)     Generates waveform dump for post-simulation analysis
+
+Purpose:
+    To verify correct functionality of fifo_sync module including:
+        • Write operation
+        • Read operation
+        • FIFO level tracking
+        • Empty and Full flag behavior
+        • Continuous streaming operation
+
+------------------------------------------------------------
+Architecture Under Test
+------------------------------------------------------------
+
+            Testbench
+                │
+                ▼
+         ┌─────────────────┐
+         │   fifo_sync     │
+         │                 │
+         │  Write Logic    │
+         │  Read Logic     │
+         │  Level Counter  │
+         │  Empty / Full   │
+         └─────────────────┘
+
+------------------------------------------------------------
+Verification Strategy
+------------------------------------------------------------
+
+1) Reset Initialization
+   - Assert reset
+   - Release reset synchronously
+   - Confirm FIFO starts empty
+
+2) CSV-Driven Write Streaming
+   - Open file: filtered_ecg_q31_0_to_2s.csv
+   - Read one integer per clock cycle
+   - Write into FIFO when not full
+   - Assert wr_en for one cycle per valid sample
+
+3) Continuous Read Drain
+   - When FIFO is not empty, assert rd_en
+   - Read and display output data
+   - Verify correct level decrement
+
+4) Real-Time Monitoring
+   - Display write transactions:
+         WRITE : <value> | LEVEL = <level>
+   - Display read transactions:
+         READ  : <value> | LEVEL = <level>
+
+5) Automatic Termination
+   - When:
+         • CSV file fully read
+         • FIFO becomes empty
+   - Simulation ends gracefully
+
+------------------------------------------------------------
+Expected Behavior
+------------------------------------------------------------
+
+✓ FIFO level increments on each write
+✓ FIFO level decrements on each read
+✓ fifo_empty asserted when level == 0
+✓ fifo_full asserted when level == FIFO_DEPTH
+✓ No write occurs when fifo_full = 1
+✓ No read occurs when fifo_empty = 1
+✓ Data integrity maintained (FIFO ordering preserved)
+✓ Simulation terminates automatically after streaming
+
+------------------------------------------------------------
+Stimulus Characteristics
+------------------------------------------------------------
+
+• Deterministic file-driven input
+• Real ECG Q31 sample values
+• No random stimulus
+• Continuous streaming scenario
+• Single clock domain operation
+
+------------------------------------------------------------
+Design Features Verified
+------------------------------------------------------------
+
+✓ Synchronous write logic
+✓ Synchronous read logic
+✓ FIFO occupancy counter
+✓ Proper empty flag logic
+✓ Proper full flag logic
+✓ Simultaneous read/write capability
+✓ Robust behavior under streaming load
+
+------------------------------------------------------------
+Scope of Verification
+------------------------------------------------------------
+
+• Functional validation only
+• Single-clock synchronous FIFO
+• No metastability testing
+• No CDC verification
+• No stress beyond file length
+• No formal verification
+
+------------------------------------------------------------
+Simulation Artifacts
+------------------------------------------------------------
+
+Waveform File:
+    fifo_dump.vcd
+
+Input Data File:
+    filtered_ecg_q31_0_to_2s.csv
+
+------------------------------------------------------------
+Notes:
+    - CSV handling is simulation-only
+    - File I/O is not synthesizable
+    - Designed for waveform inspection
+    - FIFO module under test remains fully synthesizable
+*/
 
 `timescale 1ns/1ns
 module tb_fifo_sync;
