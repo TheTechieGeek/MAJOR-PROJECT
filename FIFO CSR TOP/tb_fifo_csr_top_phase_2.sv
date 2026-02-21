@@ -155,7 +155,7 @@ Notes:
     - RTL remains synthesizable
 */
 
-module tb_axi_csr_fifo_top;
+module tb_axi_csr_fifo_top_phase2;
 
     parameter ADDR_WIDTH = 12;
     parameter DATA_WIDTH = 32;
