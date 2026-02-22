@@ -1,4 +1,4 @@
-`timescale 1ns / 1ps
+
 //////////////////////////////////////////////////////////////////////////////////
 // Company: 
 // Engineer: 
@@ -63,6 +63,7 @@ Notes:
 // --------------------------------------------------
 // Synchronous FIFO Module (with level output)
 // --------------------------------------------------
+`timescale 1ns / 1ps
 
 module fifo_sync
 #(
@@ -73,65 +74,89 @@ module fifo_sync
 (
     input                           clk,
     input                           rst_n,
-    input                           cs,        // chip select
-    input                           wr_en,     // write enable
-    input                           rd_en,     // read enable
-    input [DATA_WIDTH-1:0]          data_in,
+    input                           cs,
+    input                           wr_en,
+    input                           rd_en,
+    input  [DATA_WIDTH-1:0]         data_in,
     output reg [DATA_WIDTH-1:0]     data_out,
     output                          fifo_empty,
     output                          fifo_full,
-    output [FIFO_DEPTH-1:0]         fifo_level   // NEW: FIFO occupancy
+    output [DATA_WIDTH-1:0]         fifo_level
 );
 
-    //localparam FIFO_DEPTH_LOG = $clog2(FIFO_DEPTH);
+    // ============================================================
+    // MEMORY
+    // ============================================================
+    reg [DATA_WIDTH-1:0] fifo_mem [0:FIFO_DEPTH-1];
 
-    // FIFO memory
-    reg [DATA_WIDTH-1:0] fifo [0:FIFO_DEPTH-1];
-
-    // Read / Write pointers (extra MSB for full/empty)
+    // ============================================================
+    // POINTERS (extra MSB for full detection)
+    // ============================================================
     reg [FIFO_DEPTH_LOG:0] write_pointer;
     reg [FIFO_DEPTH_LOG:0] read_pointer;
 
-    // --------------------------------------------------
-    // WRITE OPERATION
-    // --------------------------------------------------
+    // ============================================================
+    // WRITE LOGIC
+    // ============================================================
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             write_pointer <= 0;
         end
         else if (cs && wr_en && !fifo_full) begin
-            fifo[write_pointer[FIFO_DEPTH_LOG-1:0]] <= data_in;
+            fifo_mem[write_pointer[FIFO_DEPTH_LOG-1:0]] <= data_in;
             write_pointer <= write_pointer + 1'b1;
         end
     end
 
-    // --------------------------------------------------
-    // READ OPERATION
-    // --------------------------------------------------
+    // ============================================================
+    // READ LOGIC
+    // ============================================================
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             read_pointer <= 0;
             data_out     <= 0;
         end
         else if (cs && rd_en && !fifo_empty) begin
-            data_out <= fifo[read_pointer[FIFO_DEPTH_LOG-1:0]];
+            data_out <= fifo_mem[read_pointer[FIFO_DEPTH_LOG-1:0]];
             read_pointer <= read_pointer + 1'b1;
         end
     end
 
-    // --------------------------------------------------
-    // FIFO STATUS FLAGS
-    // --------------------------------------------------
-    assign fifo_empty = (read_pointer == write_pointer);
+    // ============================================================
+    // STATUS FLAGS
+    // ============================================================
+    assign fifo_empty = (write_pointer == read_pointer);
 
-    assign fifo_full  = (read_pointer ==
-                   {~write_pointer[FIFO_DEPTH_LOG],
-                     write_pointer[FIFO_DEPTH_LOG-1:0]});
+    assign fifo_full =
+        (write_pointer[FIFO_DEPTH_LOG]     != read_pointer[FIFO_DEPTH_LOG]) &&
+        (write_pointer[FIFO_DEPTH_LOG-1:0] == read_pointer[FIFO_DEPTH_LOG-1:0]);
 
-    // --------------------------------------------------
-    // FIFO LEVEL (occupancy count)
-    // --------------------------------------------------
-    assign fifo_level = write_pointer - read_pointer;
+    // ============================================================
+    // OCCUPANCY COUNTER
+    // ============================================================
+/*
+    wire [FIFO_DEPTH_LOG:0] level_count;
+    assign level_count = write_pointer - read_pointer;
 
+    // Zero-extend to DATA_WIDTH
+    assign fifo_level = {{(DATA_WIDTH-(FIFO_DEPTH_LOG+1)){1'b0}}, level_count};
+*/
+    reg [FIFO_DEPTH_LOG:0] level_count;
+
+    always @(posedge clk) begin
+        if (!rst_n)
+            level_count <= 0;
+        else begin
+            case ({cs && wr_en && !fifo_full,
+                   cs && rd_en && !fifo_empty})
+    
+                2'b10: level_count <= level_count + 1;  // write only
+                2'b01: level_count <= level_count - 1;  // read only
+                default: level_count <= level_count;    // no change or both
+            endcase
+        end
+    end
+    
+    assign fifo_level = {{(DATA_WIDTH-(FIFO_DEPTH_LOG+1)){1'b0}}, level_count};
+    
 endmodule
-
